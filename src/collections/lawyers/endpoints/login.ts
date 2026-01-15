@@ -29,7 +29,7 @@ export const loginBRConselhosEndpoint: Endpoint = {
       if (!cpf || !userPassword) {
         return Response.json(
           { success: false, error: 'CPF e senha são obrigatórios' },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
@@ -39,7 +39,7 @@ export const loginBRConselhosEndpoint: Endpoint = {
       if (!brConselhosData || brConselhosData.status !== 'OK') {
         return Response.json(
           { success: false, error: 'CPF ou senha inválidos' },
-          { status: 401 }
+          { status: 401 },
         )
       }
 
@@ -74,7 +74,8 @@ export const loginBRConselhosEndpoint: Endpoint = {
         })
       }
 
-      // Gera o token JWT manualmente
+      // Gera o token JWT
+      const expiresIn = 7 * 24 * 60 * 60 // 7 dias em segundos
       const token = jwt.sign(
         {
           id: lawyer.id,
@@ -82,24 +83,42 @@ export const loginBRConselhosEndpoint: Endpoint = {
           email: lawyer.email,
         },
         payload.secret,
-        { expiresIn: '7d' }
+        { expiresIn },
       )
 
       // Remove campos sensíveis
       const { hash, salt, ...safeUser } = lawyer as Record<string, unknown>
 
-      return Response.json({
+      // Cria a resposta com cookie HTTP-only para browsers
+      const response = Response.json({
         success: true,
         message: 'Login realizado com sucesso',
         user: safeUser,
         token,
-        exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
+        exp: Math.floor(Date.now() / 1000) + expiresIn,
       })
+
+      // Seta o cookie payload-token (padrão do Payload)
+      const isProduction = process.env.NODE_ENV === 'production'
+      const cookieOptions = [
+        `payload-token=${token}`,
+        'Path=/',
+        `Max-Age=${expiresIn}`,
+        'HttpOnly',
+        'SameSite=Lax',
+        isProduction ? 'Secure' : '',
+      ]
+        .filter(Boolean)
+        .join('; ')
+
+      response.headers.set('Set-Cookie', cookieOptions)
+
+      return response
     } catch (error) {
       console.error('Login BR Conselhos erro:', error)
       return Response.json(
         { success: false, error: 'Erro interno do servidor' },
-        { status: 500 }
+        { status: 500 },
       )
     }
   },
