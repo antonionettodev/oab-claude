@@ -198,26 +198,24 @@ function mapStatus(situacao: string | undefined): string | undefined {
 /**
  * Autentica um usuário no BR Conselhos
  *
- * @param cpf - CPF do advogado (apenas números)
+ * @param cpf - CPF do advogado (com ou sem formatação)
  * @param senha - Senha do advogado
  * @returns Dados do usuário ou null se falhar
  */
 export async function authenticateBRConselhos(
   cpf: string,
-  senha: string
+  senha: string,
 ): Promise<BRConselhosUserData | null> {
-  // Remove caracteres não numéricos do CPF
-  const cpfClean = cpf.replace(/\D/g, '')
-
-  if (!cpfClean || !senha) {
+  if (!cpf || !senha) {
     console.error('BR Conselhos: CPF e senha são obrigatórios')
     return null
   }
 
   try {
-    const soapEnvelope = buildSoapEnvelope(cpfClean, senha)
+    // Envia o CPF como recebido (a API espera o valor completo)
+    const soapEnvelope = buildSoapEnvelope(cpf, senha)
 
-    console.log('BR Conselhos: Autenticando CPF:', cpfClean.substring(0, 3) + '***')
+    console.log('BR Conselhos: Autenticando CPF:', cpf.substring(0, 3) + '***')
 
     const response = await fetch(BR_CONSELHOS_URL, {
       method: 'POST',
