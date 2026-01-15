@@ -7,6 +7,7 @@ import { trimUppercaseHook } from '@/hooks/trim-uppercase'
 import { trimHook } from '@/hooks/trim'
 import { stripNonNumericCharactersHook } from '@/hooks/strip-non-numeric-characters'
 import { formatPhoneHook } from '@/hooks/format-phone'
+import { brConselhosStrategy } from './auth'
 import { loginBRConselhosEndpoint } from './endpoints'
 
 /**
@@ -15,8 +16,8 @@ import { loginBRConselhosEndpoint } from './endpoints'
  * Cadastro de advogados integrado com BR Conselhos.
  *
  * Autenticação:
- * - POST /api/lawyers/login-br-conselhos
- *   Body: { cpf, password }
+ * - POST /api/lawyers/login-br-conselhos (login com CPF e senha)
+ * - GET /api/lawyers/me (dados do usuário autenticado)
  *
  * O advogado faz login com CPF e senha, que são validados na API SOAP do BR Conselhos.
  * Se autenticado, os dados do advogado são criados/atualizados automaticamente.
@@ -33,7 +34,10 @@ export const Lawyers: CollectionConfig = {
     defaultColumns: ['name', 'oabNumber', 'oabState', 'status', 'updatedAt'],
     description: 'Cadastro de advogados integrado com BR Conselhos',
   },
-  auth: true,
+  auth: {
+    disableLocalStrategy: true,
+    strategies: [brConselhosStrategy],
+  },
   endpoints: [loginBRConselhosEndpoint],
   fields: [
     {
