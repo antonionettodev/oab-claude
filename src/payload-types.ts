@@ -1036,13 +1036,102 @@ export interface LegislationsType {
   createdAt: string;
 }
 /**
+ * Cadastro de advogados integrado com BR Conselhos
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "lawyers".
  */
 export interface Lawyer {
   id: number;
   name: string;
+  birthDate?: string | null;
+  maritalStatus?: ('solteiro' | 'casado' | 'divorciado' | 'viuvo' | 'separado' | 'uniao-estavel') | null;
+  cpf?: string | null;
+  rg?: string | null;
+  rgIssuer?: string | null;
+  rgIssueDate?: string | null;
+  motherName?: string | null;
+  fatherName?: string | null;
   oabNumber?: string | null;
+  temporaryRegistration?: string | null;
+  oabState?:
+    | (
+        | 'AC'
+        | 'AL'
+        | 'AM'
+        | 'AP'
+        | 'BA'
+        | 'CE'
+        | 'DF'
+        | 'ES'
+        | 'GO'
+        | 'MA'
+        | 'MG'
+        | 'MS'
+        | 'MT'
+        | 'PA'
+        | 'PB'
+        | 'PE'
+        | 'PI'
+        | 'PR'
+        | 'RJ'
+        | 'RN'
+        | 'RO'
+        | 'RR'
+        | 'RS'
+        | 'SC'
+        | 'SE'
+        | 'SP'
+        | 'TO'
+      )
+    | null;
+  subunit?: string | null;
+  status?: ('ativo' | 'inativo' | 'suspenso' | 'licenciado' | 'cancelado' | 'falecido') | null;
+  isDefaulter?: boolean | null;
+  isYoungLawyer?: boolean | null;
+  judgmentDate?: string | null;
+  internJudgmentDate?: string | null;
+  commercialEmail?: string | null;
+  commercialPhone?: string | null;
+  commercialPhone2?: string | null;
+  postalCode?: string | null;
+  street?: string | null;
+  streetNumber?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?:
+    | (
+        | 'AC'
+        | 'AL'
+        | 'AM'
+        | 'AP'
+        | 'BA'
+        | 'CE'
+        | 'DF'
+        | 'ES'
+        | 'GO'
+        | 'MA'
+        | 'MG'
+        | 'MS'
+        | 'MT'
+        | 'PA'
+        | 'PB'
+        | 'PE'
+        | 'PI'
+        | 'PR'
+        | 'RJ'
+        | 'RN'
+        | 'RO'
+        | 'RR'
+        | 'RS'
+        | 'SC'
+        | 'SE'
+        | 'SP'
+        | 'TO'
+      )
+    | null;
+  country?: string | null;
   /**
    * Usuário que criou este registro
    */
@@ -2492,7 +2581,34 @@ export interface LegislationsTypesSelect<T extends boolean = true> {
  */
 export interface LawyersSelect<T extends boolean = true> {
   name?: T;
+  birthDate?: T;
+  maritalStatus?: T;
+  cpf?: T;
+  rg?: T;
+  rgIssuer?: T;
+  rgIssueDate?: T;
+  motherName?: T;
+  fatherName?: T;
   oabNumber?: T;
+  temporaryRegistration?: T;
+  oabState?: T;
+  subunit?: T;
+  status?: T;
+  isDefaulter?: T;
+  isYoungLawyer?: T;
+  judgmentDate?: T;
+  internJudgmentDate?: T;
+  commercialEmail?: T;
+  commercialPhone?: T;
+  commercialPhone2?: T;
+  postalCode?: T;
+  street?: T;
+  streetNumber?: T;
+  complement?: T;
+  neighborhood?: T;
+  city?: T;
+  state?: T;
+  country?: T;
   createdBy?: T;
   editedBy?: T;
   updatedAt?: T;

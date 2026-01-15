@@ -42,7 +42,7 @@ import { CalendarTed } from './collections/ted/calendar_ted'
 import { sendPostNotificationTask } from './jobs/tasks/newsletter-notification'
 import { getServerSideURL } from './lib/get-urls'
 import { plugins } from './plugins'
-import { migrations } from './migrations'
+// import { migrations } from './migrations'
 import { Certificates } from './collections/events/certificates'
 import { ParticipantCategories } from './collections/events/participant-categories'
 import { Checkins } from './collections/events/checkins'
@@ -162,7 +162,7 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
     },
-    prodMigrations: migrations,
+    // prodMigrations: migrations,
   }),
   sharp,
   email: nodemailerAdapter({

@@ -8,18 +8,6 @@ import { trimHook } from '@/hooks/trim'
 import { stripNonNumericCharactersHook } from '@/hooks/strip-non-numeric-characters'
 import { formatPhoneHook } from '@/hooks/format-phone'
 
-/**
- * Collection: Advogados
- *
- * Estrutura preparada para integração com a API do BR Conselhos (OAB).
- * Os campos seguem a nomenclatura e tipos retornados pela API de autenticação.
- *
- * Campos da API BR Conselhos:
- * - RegistroConselho, RegistroConselhoTemporario
- * - Dados pessoais (Nome, DataNascimento, CPF, RG, etc.)
- * - Dados profissionais (Situação, SubUnidade, DataAcordao, etc.)
- * - Dados de contato (Email, Telefones, Endereço)
- */
 export const Lawyers: CollectionConfig = {
   slug: 'lawyers',
   labels: {
@@ -37,9 +25,6 @@ export const Lawyers: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
-        // =====================================================
-        // TAB 1: DADOS PESSOAIS
-        // =====================================================
         {
           label: 'Dados Pessoais',
           fields: [
@@ -182,9 +167,6 @@ export const Lawyers: CollectionConfig = {
             },
           ],
         },
-        // =====================================================
-        // TAB 2: DADOS PROFISSIONAIS (OAB)
-        // =====================================================
         {
           label: 'Dados Profissionais',
           fields: [
@@ -202,7 +184,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Número de registro no conselho',
                         width: '25%',
-                        description: 'RegistroConselho na API BR Conselhos',
                       },
                       maxLength: 20,
                       hooks: {
@@ -216,7 +197,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Registro temporário (se houver)',
                         width: '25%',
-                        description: 'RegistroConselhoTemporario na API BR Conselhos',
                       },
                       maxLength: 20,
                       hooks: {
@@ -268,7 +248,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Ex: OAB/SC',
                         width: '25%',
-                        description: 'SubUnidadeAtual.NomeSubUnidade na API BR Conselhos',
                       },
                       maxLength: 64,
                       hooks: {
@@ -300,31 +279,21 @@ export const Lawyers: CollectionConfig = {
                       ],
                       admin: {
                         placeholder: 'Selecione a situação',
-                        width: '25%',
-                        description: 'SituacaoAtual na API BR Conselhos',
-                      },
-                    },
-                    {
-                      name: 'isDefaulter',
-                      type: 'checkbox',
-                      label: 'Inadimplente',
-                      defaultValue: false,
-                      admin: {
-                        width: '25%',
-                        description: 'Inadimplente na API BR Conselhos',
-                      },
-                    },
-                    {
-                      name: 'isYoungLawyer',
-                      type: 'checkbox',
-                      label: 'Jovem Advogado',
-                      defaultValue: false,
-                      admin: {
-                        width: '25%',
-                        description: 'JovemAdvogado na API BR Conselhos',
                       },
                     },
                   ],
+                },
+                {
+                  name: 'isDefaulter',
+                  type: 'checkbox',
+                  label: 'Inadimplente',
+                  defaultValue: false,
+                },
+                {
+                  name: 'isYoungLawyer',
+                  type: 'checkbox',
+                  label: 'Jovem Advogado',
+                  defaultValue: false,
                 },
                 {
                   type: 'row',
@@ -336,7 +305,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Data de aprovação',
                         width: '50%',
-                        description: 'DataAcordao na API BR Conselhos',
                         date: {
                           displayFormat: 'dd/MM/yyyy',
                         },
@@ -349,7 +317,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Data de aprovação como estagiário',
                         width: '50%',
-                        description: 'DataAcordaoEstagiario na API BR Conselhos',
                         date: {
                           displayFormat: 'dd/MM/yyyy',
                         },
@@ -359,50 +326,8 @@ export const Lawyers: CollectionConfig = {
                 },
               ],
             },
-            {
-              type: 'group',
-              label: 'Identificação BR Conselhos',
-              admin: {
-                description: 'Campos de controle para integração com a API BR Conselhos',
-              },
-              fields: [
-                {
-                  type: 'row',
-                  fields: [
-                    {
-                      name: 'brConselhosLoginUser',
-                      type: 'text',
-                      label: 'Login BR Conselhos',
-                      admin: {
-                        placeholder: 'LoginUser na API',
-                        width: '50%',
-                        description: 'LoginUser retornado pela API BR Conselhos',
-                        readOnly: true,
-                      },
-                      maxLength: 64,
-                    },
-                    {
-                      name: 'brConselhosSyncedAt',
-                      type: 'date',
-                      label: 'Última Sincronização',
-                      admin: {
-                        width: '50%',
-                        description: 'Data/hora da última sincronização com BR Conselhos',
-                        readOnly: true,
-                        date: {
-                          displayFormat: 'dd/MM/yyyy HH:mm',
-                        },
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
           ],
         },
-        // =====================================================
-        // TAB 3: CONTATO
-        // =====================================================
         {
           label: 'Contato',
           fields: [
@@ -420,7 +345,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Email comercial',
                         width: '34%',
-                        description: 'EMailComercial na API BR Conselhos',
                       },
                       hooks: {
                         beforeChange: [trimHook],
@@ -433,7 +357,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Telefone comercial',
                         width: '33%',
-                        description: 'TelefoneComercial na API BR Conselhos',
                       },
                       maxLength: 20,
                       hooks: {
@@ -448,7 +371,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Telefone comercial secundário',
                         width: '33%',
-                        description: 'Telefone2Comercial na API BR Conselhos',
                       },
                       maxLength: 20,
                       hooks: {
@@ -463,9 +385,6 @@ export const Lawyers: CollectionConfig = {
             {
               type: 'group',
               label: 'Endereço de Correspondência',
-              admin: {
-                description: 'Endereço para correspondência conforme cadastro no BR Conselhos',
-              },
               fields: [
                 {
                   type: 'row',
@@ -477,7 +396,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'CEP',
                         width: '20%',
-                        description: 'CEPCorreio.CEP na API BR Conselhos',
                       },
                       maxLength: 9,
                       hooks: {
@@ -491,7 +409,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Rua, Avenida, etc.',
                         width: '50%',
-                        description: 'LogradouroCorreio na API BR Conselhos',
                       },
                       maxLength: 128,
                       hooks: {
@@ -505,7 +422,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Nº',
                         width: '15%',
-                        description: 'NumeroCorreio na API BR Conselhos',
                       },
                       maxLength: 10,
                       hooks: {
@@ -519,7 +435,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Apto, Sala, etc.',
                         width: '15%',
-                        description: 'ComplementoCorreio na API BR Conselhos',
                       },
                       maxLength: 64,
                       hooks: {
@@ -538,7 +453,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Bairro',
                         width: '30%',
-                        description: 'BairroCorreio na API BR Conselhos',
                       },
                       maxLength: 64,
                       hooks: {
@@ -552,7 +466,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'Cidade',
                         width: '30%',
-                        description: 'MunicipioCorreio.Descricao na API BR Conselhos',
                       },
                       maxLength: 64,
                       hooks: {
@@ -595,7 +508,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'UF',
                         width: '20%',
-                        description: 'MunicipioCorreio.Estado.Sigla na API BR Conselhos',
                       },
                     },
                     {
@@ -606,7 +518,6 @@ export const Lawyers: CollectionConfig = {
                       admin: {
                         placeholder: 'País',
                         width: '20%',
-                        description: 'MunicipioCorreio.Pais.Descricao na API BR Conselhos',
                       },
                       maxLength: 64,
                       hooks: {
