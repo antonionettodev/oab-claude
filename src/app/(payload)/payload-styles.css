@@ -1,0 +1,11 @@
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme) prefix(tw);
+@import 'tailwindcss/utilities.css' layer(utilities) prefix(tw);
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+.step-nav__home {
+  width: auto !important;
+  height: auto !important;
+}
