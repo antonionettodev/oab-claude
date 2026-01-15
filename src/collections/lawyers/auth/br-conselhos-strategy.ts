@@ -6,6 +6,10 @@ import jwt from 'jsonwebtoken'
  *
  * Valida o token JWT gerado no login do BR Conselhos.
  * Usado para autenticar requisições como /api/lawyers/me
+ *
+ * Aceita tokens nos formatos:
+ * - Authorization: JWT <token> (formato padrão do Payload)
+ * - Authorization: Bearer <token> (formato alternativo)
  */
 export const brConselhosStrategy: AuthStrategy = {
   name: 'br-conselhos-jwt',
@@ -18,10 +22,13 @@ export const brConselhosStrategy: AuthStrategy = {
         return { user: null }
       }
 
-      // Remove "Bearer " do início
-      const token = authHeader.startsWith('Bearer ')
-        ? authHeader.slice(7)
-        : authHeader
+      // Remove prefixo "JWT " ou "Bearer " do início
+      let token = authHeader
+      if (authHeader.startsWith('JWT ')) {
+        token = authHeader.slice(4)
+      } else if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.slice(7)
+      }
 
       if (!token) {
         return { user: null }

@@ -58,12 +58,31 @@ export const Lawyers: CollectionConfig = {
                       width: '50%',
                     }),
                     {
+                      name: 'email',
+                      type: 'email',
+                      label: 'Email',
+                      required: true,
+                      unique: true,
+                      admin: {
+                        placeholder: 'Email do advogado',
+                        width: '50%',
+                      },
+                      hooks: {
+                        beforeChange: [trimHook],
+                      },
+                    },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
                       name: 'birthDate',
                       type: 'date',
                       label: 'Data de Nascimento',
                       admin: {
                         placeholder: 'Data de nascimento',
-                        width: '25%',
+                        width: '50%',
                         date: {
                           displayFormat: 'dd/MM/yyyy',
                         },
@@ -83,7 +102,7 @@ export const Lawyers: CollectionConfig = {
                       ],
                       admin: {
                         placeholder: 'Selecione o estado civil',
-                        width: '25%',
+                        width: '50%',
                       },
                     },
                   ],
