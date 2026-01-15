@@ -3,18 +3,26 @@ import type { CollectionConfig } from 'payload'
 import { createdByField } from '@/fields/created-by'
 import { editedByField } from '@/fields/edited-by'
 import { trimHook } from '@/hooks/trim'
+import { webhookEndpoint } from './endpoints'
 import {
-  createOrderEndpoint,
-  getOrderEndpoint,
-  webhookEndpoint,
-  syncOrderEndpoint,
-} from './endpoints'
+  createPagBankOrderHook,
+  syncPagBankStatusHook,
+  updateRegistrationOnPaymentHook,
+} from './hooks'
 
 /**
  * Collection: Payments (PagBank)
  *
  * Gerencia os pedidos/pagamentos processados via PagBank.
  * Armazena informações de pedidos, clientes, itens e status de pagamento.
+ *
+ * Hooks:
+ * - beforeChange: Cria o pedido no PagBank automaticamente ao salvar
+ * - afterChange: Atualiza a inscrição relacionada quando o status muda
+ * - afterRead: Sincroniza o status com o PagBank (opcional, para pagamentos pendentes)
+ *
+ * Endpoint:
+ * - POST /api/payments/webhook: Recebe notificações do PagBank
  */
 export const Payments: CollectionConfig = {
   slug: 'payments',
@@ -28,12 +36,13 @@ export const Payments: CollectionConfig = {
     defaultColumns: ['referenceId', 'pagbankOrderId', 'customerName', 'status', 'totalAmount', 'createdAt'],
     description: 'Pagamentos processados via PagBank',
   },
-  endpoints: [
-    createOrderEndpoint,
-    getOrderEndpoint,
-    webhookEndpoint,
-    syncOrderEndpoint,
-  ],
+  hooks: {
+    beforeChange: [createPagBankOrderHook],
+    afterChange: [updateRegistrationOnPaymentHook],
+    // Descomente a linha abaixo para habilitar sincronização automática ao ler
+    // afterRead: [syncPagBankStatusHook],
+  },
+  endpoints: [webhookEndpoint],
   fields: [
     {
       type: 'tabs',
@@ -70,7 +79,7 @@ export const Payments: CollectionConfig = {
                       admin: {
                         placeholder: 'ORDE_XXXXXXXXXXXX',
                         width: '50%',
-                        description: 'ID do pedido retornado pelo PagBank',
+                        description: 'ID do pedido retornado pelo PagBank (preenchido automaticamente)',
                         readOnly: true,
                       },
                     },
@@ -114,6 +123,7 @@ export const Payments: CollectionConfig = {
                       ],
                       admin: {
                         width: '33%',
+                        description: 'Selecione PIX ou Boleto para gerar automaticamente',
                       },
                     },
                     {
@@ -157,6 +167,7 @@ export const Payments: CollectionConfig = {
                       admin: {
                         width: '33%',
                         description: 'Valor efetivamente pago',
+                        readOnly: true,
                       },
                     },
                     {
@@ -167,6 +178,7 @@ export const Payments: CollectionConfig = {
                       admin: {
                         width: '34%',
                         description: 'Valor devolvido ao cliente',
+                        readOnly: true,
                       },
                     },
                   ],
@@ -350,6 +362,7 @@ export const Payments: CollectionConfig = {
                   label: 'Resposta Completa',
                   admin: {
                     description: 'Resposta completa retornada pelo PagBank na criação do pedido',
+                    readOnly: true,
                   },
                 },
                 {
