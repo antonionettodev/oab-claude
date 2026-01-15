@@ -46,6 +46,7 @@ import { plugins } from './plugins'
 import { Certificates } from './collections/events/certificates'
 import { ParticipantCategories } from './collections/events/participant-categories'
 import { Checkins } from './collections/events/checkins'
+import { Payments } from './collections/payments'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -152,6 +153,7 @@ export default buildConfig({
     Certificates,
     ParticipantCategories,
     Checkins,
+    Payments,
   ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
