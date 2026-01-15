@@ -22,7 +22,7 @@ export const getOrderEndpoint: Endpoint = {
     const { payload, routeParams } = req
 
     try {
-      const orderId = routeParams?.orderId
+      const orderId = routeParams?.orderId as string | undefined
 
       if (!orderId) {
         return Response.json(
@@ -110,7 +110,7 @@ export const getOrderEndpoint: Endpoint = {
       }
 
       // Mapeia o status do PagBank para o status local
-      const mapPagBankStatus = (charges: any[]): string => {
+      const mapPagBankStatus = (charges: Array<{ status?: string }>): string => {
         if (!charges || charges.length === 0) {
           return 'pending'
         }
@@ -130,7 +130,7 @@ export const getOrderEndpoint: Endpoint = {
           in_analysis: 'in_analysis',
         }
 
-        return statusMap[status] || 'pending'
+        return statusMap[status || ''] || 'pending'
       }
 
       const newStatus = mapPagBankStatus(pagbankData.charges)
@@ -141,7 +141,7 @@ export const getOrderEndpoint: Endpoint = {
 
         // Só atualiza se o status mudou
         if (previousStatus !== newStatus) {
-          const updateData: Record<string, any> = {
+          const updateData: Record<string, unknown> = {
             status: newStatus,
             pagbankResponse: pagbankData,
           }

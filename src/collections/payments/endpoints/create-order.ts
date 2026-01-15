@@ -3,6 +3,8 @@ import type { Endpoint } from 'payload'
 const PAGBANK_API_URL = process.env.PAGBANK_API_URL || 'https://sandbox.api.pagseguro.com'
 const PAGBANK_TOKEN = process.env.PAGBANK_TOKEN || ''
 
+type PaymentMethod = 'credit_card' | 'debit_card' | 'boleto' | 'pix' | 'qr_code'
+
 interface PagBankCustomer {
   name: string
   email: string
@@ -73,8 +75,8 @@ interface CreateOrderRequest {
   qr_codes?: PagBankQRCode[]
   charges?: PagBankCharge[]
   notification_urls?: string[]
-  registrationId?: string
-  lawyerId?: string
+  registrationId?: number
+  lawyerId?: number
 }
 
 /**
@@ -142,7 +144,7 @@ export const createOrderEndpoint: Endpoint = {
       }
 
       // Monta o body para a API do PagBank
-      const pagbankBody: Record<string, any> = {
+      const pagbankBody: Record<string, unknown> = {
         reference_id,
         customer,
       }
@@ -198,12 +200,18 @@ export const createOrderEndpoint: Endpoint = {
       }
 
       // Determina o método de pagamento
-      let paymentMethod: string | undefined
+      let paymentMethod: PaymentMethod | undefined
       if (qr_codes && qr_codes.length > 0) {
         paymentMethod = 'pix'
       } else if (charges && charges.length > 0 && charges[0].payment_method) {
         const methodType = charges[0].payment_method.type
-        paymentMethod = methodType.toLowerCase().replace('_', '_')
+        const methodMap: Record<string, PaymentMethod> = {
+          PIX: 'pix',
+          BOLETO: 'boleto',
+          CREDIT_CARD: 'credit_card',
+          DEBIT_CARD: 'debit_card',
+        }
+        paymentMethod = methodMap[methodType]
       }
 
       // Extrai dados do QR Code PIX se disponível
@@ -214,7 +222,7 @@ export const createOrderEndpoint: Endpoint = {
       if (pagbankData.qr_codes && pagbankData.qr_codes.length > 0) {
         const qrCode = pagbankData.qr_codes[0]
         if (qrCode.links) {
-          const pngLink = qrCode.links.find((link: any) => link.media === 'image/png')
+          const pngLink = qrCode.links.find((link: { media: string; href: string }) => link.media === 'image/png')
           if (pngLink) {
             qrCodeUrl = pngLink.href
           }
@@ -236,7 +244,7 @@ export const createOrderEndpoint: Endpoint = {
           boletoBarcode = charge.payment_method.boleto.barcode
           boletoDueDate = charge.payment_method.boleto.due_date
           if (charge.links) {
-            const pdfLink = charge.links.find((link: any) => link.media === 'application/pdf')
+            const pdfLink = charge.links.find((link: { media: string; href: string }) => link.media === 'application/pdf')
             if (pdfLink) {
               boletoUrl = pdfLink.href
             }
@@ -277,8 +285,8 @@ export const createOrderEndpoint: Endpoint = {
           boletoUrl,
           boletoBarcode,
           boletoDueDate,
-          registration: registrationId || undefined,
-          lawyer: lawyerId || undefined,
+          registration: registrationId,
+          lawyer: lawyerId,
         },
       })
 

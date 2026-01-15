@@ -3,11 +3,15 @@ import type { Endpoint } from 'payload'
 const PAGBANK_API_URL = process.env.PAGBANK_API_URL || 'https://sandbox.api.pagseguro.com'
 const PAGBANK_TOKEN = process.env.PAGBANK_TOKEN || ''
 
+type PaymentStatus = 'pending' | 'waiting_payment' | 'in_analysis' | 'authorized' | 'paid' | 'available' | 'in_dispute' | 'refunded' | 'canceled' | 'declined'
+
+type RegistrationPaymentMethod = 'boleto' | 'credit-card' | 'debit-card' | 'pix' | 'transfer' | 'complimentary'
+
 /**
  * Mapeia o status do PagBank para o status local
  */
-const mapPagBankStatus = (status: string): string => {
-  const statusMap: Record<string, string> = {
+const mapPagBankStatus = (status: string): PaymentStatus => {
+  const statusMap: Record<string, PaymentStatus> = {
     AUTHORIZED: 'authorized',
     PAID: 'paid',
     AVAILABLE: 'available',
@@ -20,6 +24,23 @@ const mapPagBankStatus = (status: string): string => {
   }
 
   return statusMap[status?.toUpperCase()] || 'pending'
+}
+
+/**
+ * Converte o método de pagamento da collection payments para registrations
+ */
+const convertPaymentMethod = (method: string | null | undefined): RegistrationPaymentMethod | undefined => {
+  if (!method) return undefined
+
+  const methodMap: Record<string, RegistrationPaymentMethod> = {
+    credit_card: 'credit-card',
+    debit_card: 'debit-card',
+    boleto: 'boleto',
+    pix: 'pix',
+    qr_code: 'pix',
+  }
+
+  return methodMap[method]
 }
 
 /**
@@ -89,7 +110,7 @@ export const webhookEndpoint: Endpoint = {
       }
 
       // Determina o novo status baseado nas charges
-      let newStatus = payment.status
+      let newStatus: PaymentStatus = payment.status as PaymentStatus
       let paidAmount: number | undefined
       let refundedAmount: number | undefined
       let chargeId: string | undefined
@@ -110,7 +131,7 @@ export const webhookEndpoint: Endpoint = {
       const previousStatus = payment.status
 
       // Prepara os dados de atualização
-      const updateData: Record<string, any> = {
+      const updateData: Record<string, unknown> = {
         pagbankResponse: body,
       }
 
@@ -166,6 +187,8 @@ export const webhookEndpoint: Endpoint = {
               ? updatedPayment.registration.id
               : updatedPayment.registration
 
+          const registrationPaymentMethod = convertPaymentMethod(updatedPayment.paymentMethod)
+
           await payload.update({
             collection: 'registrations',
             id: registrationId,
@@ -173,7 +196,7 @@ export const webhookEndpoint: Endpoint = {
               paymentStatus: 'paid',
               paymentDate: new Date().toISOString(),
               paymentReference: pagbankOrderId,
-              paymentMethod: updatedPayment.paymentMethod,
+              paymentMethod: registrationPaymentMethod,
             },
           })
 
@@ -253,7 +276,7 @@ export const syncOrderEndpoint: Endpoint = {
     const { payload, routeParams } = req
 
     try {
-      const orderId = routeParams?.orderId
+      const orderId = routeParams?.orderId as string | undefined
 
       if (!orderId) {
         return Response.json(
@@ -339,7 +362,7 @@ export const syncOrderEndpoint: Endpoint = {
       }
 
       // Determina o novo status
-      let newStatus = payment.status
+      let newStatus: PaymentStatus = payment.status as PaymentStatus
       let paidAmount: number | undefined
       let refundedAmount: number | undefined
       let chargeId: string | undefined
@@ -360,7 +383,7 @@ export const syncOrderEndpoint: Endpoint = {
       const previousStatus = payment.status
 
       // Prepara os dados de atualização
-      const updateData: Record<string, any> = {
+      const updateData: Record<string, unknown> = {
         status: newStatus,
         pagbankResponse: pagbankData,
       }
