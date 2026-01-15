@@ -1,6 +1,8 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
-const PAGBANK_API_URL = process.env.PAGBANK_API_URL || 'https://sandbox.api.pagseguro.com'
+const PAGBANK_API_URL = process.env.PAGBANK_API_URL?.startsWith('http')
+  ? process.env.PAGBANK_API_URL
+  : `https://${process.env.PAGBANK_API_URL || 'sandbox.api.pagseguro.com'}`
 const PAGBANK_TOKEN = process.env.PAGBANK_TOKEN || ''
 
 type PaymentMethod = 'credit_card' | 'debit_card' | 'boleto' | 'pix' | 'qr_code'
