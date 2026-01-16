@@ -16,6 +16,7 @@ import {
   checkinEndpoint,
   downloadCertificateEndpoint,
   issueCertificateEndpoint,
+  lookupParticipantEndpoint,
   requestRefundEndpoint,
   searchRegistrationEndpoint,
   selfCheckinEndpoint,
@@ -1205,5 +1206,6 @@ export const Events: CollectionConfig = {
     requestRefundEndpoint,
     validateQRCodeEndpoint,
     searchRegistrationEndpoint,
+    lookupParticipantEndpoint,
   ],
 }

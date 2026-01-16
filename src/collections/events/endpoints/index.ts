@@ -20,3 +20,4 @@ export {
   updatePaymentEndpoint,
   requestRefundEndpoint,
 } from './payment'
+export { lookupParticipantEndpoint } from './lookup-participant'

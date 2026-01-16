@@ -14,6 +14,7 @@ import {
   updateEventRegistrationCountAfterDeleteHook,
 } from './hooks/updateEventRegistrationCountHook'
 import { validateRoomSelectionHook } from './hooks/validateRoomSelectionHook'
+import { createPaymentHook } from './hooks/createPaymentHook'
 
 /**
  * Collection: Inscrições
@@ -53,7 +54,7 @@ export const Registrations: CollectionConfig = {
   },
   hooks: {
     beforeChange: [validateEventCapacityHook, validateRoomSelectionHook, calculateTotalPriceHook],
-    afterChange: [generateTicketTokensHook, updateEventRegistrationCountHook],
+    afterChange: [generateTicketTokensHook, updateEventRegistrationCountHook, createPaymentHook],
     afterDelete: [updateEventRegistrationCountAfterDeleteHook],
   },
   fields: [
@@ -571,6 +572,16 @@ export const Registrations: CollectionConfig = {
           maxLength: 100,
           admin: {
             placeholder: 'ID da transação, código do boleto, etc.',
+          },
+        },
+        {
+          name: 'payment',
+          type: 'relationship',
+          label: 'Pagamento (PagBank)',
+          relationTo: 'payments',
+          admin: {
+            description: 'Registro de pagamento vinculado (preenchido automaticamente)',
+            readOnly: true,
           },
         },
       ],
