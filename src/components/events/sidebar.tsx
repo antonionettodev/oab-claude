@@ -20,13 +20,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import type { Event } from '@/payload-types'
 
 interface EventSidebarProps {
@@ -98,7 +91,6 @@ export function EventSidebar({ event }: EventSidebarProps) {
   const [participantPhone, setParticipantPhone] = useState('')
   const [participantCPF, setParticipantCPF] = useState('')
   const [participantOAB, setParticipantOAB] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<string>('pix')
 
   // Lookup state
   const [isLookingUp, setIsLookingUp] = useState(false)
@@ -247,7 +239,7 @@ export function EventSidebar({ event }: EventSidebarProps) {
         registrantOAB: participantOAB || undefined,
         tickets,
         totalPrice: total,
-        paymentMethod: total > 0 ? paymentMethod : 'complimentary',
+        paymentMethod: total > 0 ? 'checkout' : 'complimentary', // PagBank Checkout handles all payment methods
         paymentStatus: total > 0 ? 'pending' : 'complimentary',
         status: 'confirmed',
         lawyer: lookupResult?.lawyerId || undefined,
@@ -500,20 +492,9 @@ export function EventSidebar({ event }: EventSidebarProps) {
                       </span>
                     </div>
 
-                    {/* Payment method selection */}
-                    <div className="space-y-2 pt-2">
-                      <Label>Forma de Pagamento</Label>
-                      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pix">PIX (Aprovação instantânea)</SelectItem>
-                          <SelectItem value="boleto">Boleto Bancário</SelectItem>
-                          <SelectItem value="credit-card">Cartão de Crédito</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Você será redirecionado para o PagBank para escolher a forma de pagamento
+                    </p>
                   </>
                 )}
               </div>

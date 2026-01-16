@@ -441,6 +441,15 @@ export const Payments: CollectionConfig = {
                     },
                   },
                 },
+                {
+                  name: 'checkoutUrl',
+                  type: 'text',
+                  label: 'URL do Checkout',
+                  admin: {
+                    description: 'URL para redirecionar o cliente ao checkout do PagBank',
+                    readOnly: true,
+                  },
+                },
               ],
             },
             {

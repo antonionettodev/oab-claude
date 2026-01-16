@@ -2,13 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   CheckCircle2,
   Clock,
-  Copy,
-  Download,
-  QrCode,
   Calendar,
   MapPin,
   User,
@@ -19,6 +15,7 @@ import {
   Loader2,
   ExternalLink,
   Ticket,
+  ShieldCheck,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -47,32 +44,27 @@ function formatDate(date: string) {
   })
 }
 
-function formatDateTime(date: string) {
-  return new Date(date).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 export function RegistrationStatus({
   registration,
   event,
   payment,
   initialStatus,
 }: RegistrationStatusProps) {
-  const [copied, setCopied] = useState(false)
   const [currentPayment, setCurrentPayment] = useState(payment)
   const [isPolling, setIsPolling] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   const isPaid =
     registration.paymentStatus === 'paid' ||
     registration.paymentStatus === 'complimentary' ||
+    currentPayment?.status === 'paid' ||
+    currentPayment?.status === 'available' ||
     initialStatus === 'success'
 
   const isFree = registration.totalPrice === 0 || registration.paymentStatus === 'complimentary'
+
+  // Get checkout URL from payment (type assertion needed for custom field)
+  const checkoutUrl = (currentPayment as Payment & { checkoutUrl?: string })?.checkoutUrl
 
   // Poll for payment status updates
   useEffect(() => {
@@ -98,18 +90,15 @@ export function RegistrationStatus({
       }
     }
 
-    // Poll every 10 seconds for PIX payments
-    const interval = setInterval(pollPaymentStatus, 10000)
+    // Poll every 15 seconds
+    const interval = setInterval(pollPaymentStatus, 15000)
     return () => clearInterval(interval)
   }, [isPaid, isFree, currentPayment])
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error('Failed to copy:', error)
+  const handlePayment = () => {
+    if (checkoutUrl) {
+      setIsRedirecting(true)
+      window.location.href = checkoutUrl
     }
   }
 
@@ -180,9 +169,9 @@ export function RegistrationStatus({
         {/* Main Content */}
         <div className="md:col-span-2 space-y-6">
           {/* Payment Section - Only show if not paid and not free */}
-          {!isPaid && !isFree && currentPayment && (
-            <Card>
-              <CardHeader>
+          {!isPaid && !isFree && (
+            <Card className="border-primary border-2">
+              <CardHeader className="bg-primary/5">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="w-5 h-5" />
@@ -196,120 +185,72 @@ export function RegistrationStatus({
                   )}
                 </div>
                 <CardDescription>
-                  {currentPayment.paymentMethod === 'pix'
-                    ? 'Escaneie o QR Code ou copie o código PIX'
-                    : currentPayment.paymentMethod === 'boleto'
-                      ? 'Pague o boleto até a data de vencimento'
-                      : 'Complete o pagamento'}
+                  Clique no botão abaixo para ser redirecionado ao ambiente seguro do PagBank
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* PIX Payment */}
-                {currentPayment.paymentMethod === 'pix' && currentPayment.qrCodeUrl && (
-                  <div className="space-y-4">
-                    <div className="flex justify-center">
-                      <div className="bg-white p-4 rounded-lg shadow-sm">
-                        {currentPayment.qrCodeUrl ? (
-                          <Image
-                            src={currentPayment.qrCodeUrl}
-                            alt="QR Code PIX"
-                            width={200}
-                            height={200}
-                            className="mx-auto"
-                          />
-                        ) : (
-                          <div className="w-[200px] h-[200px] flex items-center justify-center bg-gray-100 rounded">
-                            <QrCode className="w-16 h-16 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
+              <CardContent className="pt-6 space-y-6">
+                {/* Payment Amount */}
+                <div className="text-center py-6 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Valor Total</p>
+                  <p className="text-4xl font-bold text-primary">
+                    {formatBRL(registration.totalPrice || 0)}
+                  </p>
+                </div>
 
-                    {currentPayment.qrCodeText && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-center">PIX Copia e Cola</p>
-                        <div className="flex gap-2">
-                          <div className="flex-1 bg-muted p-3 rounded-lg text-xs break-all font-mono">
-                            {currentPayment.qrCodeText.slice(0, 100)}...
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToClipboard(currentPayment.qrCodeText || '')}
-                            className="flex-shrink-0"
-                          >
-                            {copied ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
+                {/* Payment Button */}
+                {checkoutUrl ? (
+                  <Button
+                    onClick={handlePayment}
+                    disabled={isRedirecting}
+                    className="w-full h-14 text-lg"
+                    size="lg"
+                  >
+                    {isRedirecting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Redirecionando para o PagBank...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pagar com PagBank
+                      </>
                     )}
-
-                    {currentPayment.qrCodeExpirationDate && (
-                      <p className="text-sm text-center text-muted-foreground">
-                        Válido até: {formatDateTime(currentPayment.qrCodeExpirationDate)}
-                      </p>
-                    )}
+                  </Button>
+                ) : (
+                  <div className="text-center py-6">
+                    <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">
+                      Gerando link de pagamento...
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Aguarde alguns segundos e atualize a página
+                    </p>
                   </div>
                 )}
 
-                {/* Boleto Payment */}
-                {currentPayment.paymentMethod === 'boleto' && (
-                  <div className="space-y-4">
-                    {currentPayment.boletoBarcode && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Linha Digitável</p>
-                        <div className="flex gap-2">
-                          <div className="flex-1 bg-muted p-3 rounded-lg text-sm break-all font-mono">
-                            {currentPayment.boletoBarcode}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToClipboard(currentPayment.boletoBarcode || '')}
-                            className="flex-shrink-0"
-                          >
-                            {copied ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {currentPayment.boletoUrl && (
-                      <Button asChild className="w-full">
-                        <a
-                          href={currentPayment.boletoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Baixar Boleto
-                        </a>
-                      </Button>
-                    )}
-
-                    {currentPayment.boletoDueDate && (
-                      <p className="text-sm text-center text-muted-foreground">
-                        Vencimento: {formatDate(currentPayment.boletoDueDate)}
-                      </p>
-                    )}
+                {/* Payment Methods Info */}
+                <div className="text-center text-sm text-muted-foreground">
+                  <p className="mb-3">Formas de pagamento disponíveis:</p>
+                  <div className="flex justify-center gap-3 flex-wrap">
+                    <span className="bg-muted px-4 py-2 rounded-full font-medium">PIX</span>
+                    <span className="bg-muted px-4 py-2 rounded-full font-medium">
+                      Cartão de Crédito
+                    </span>
+                    <span className="bg-muted px-4 py-2 rounded-full font-medium">
+                      Cartão de Débito
+                    </span>
+                    <span className="bg-muted px-4 py-2 rounded-full font-medium">Boleto</span>
                   </div>
-                )}
+                  <p className="mt-3 text-xs">Parcelamento em até 12x no cartão de crédito</p>
+                </div>
 
                 <Separator />
 
-                <div className="flex items-center justify-between text-lg font-semibold">
-                  <span>Total a pagar</span>
-                  <span className="text-primary">
-                    {formatBRL((currentPayment.totalAmount || 0) / 100)}
-                  </span>
+                {/* Security Note */}
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <ShieldCheck className="w-5 h-5 text-green-600" />
+                  <span>Pagamento 100% seguro pelo PagBank</span>
                 </div>
               </CardContent>
             </Card>
@@ -419,9 +360,7 @@ export function RegistrationStatus({
                 <div className="flex items-start gap-3">
                   <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">
-                      {event.startDate && formatDate(event.startDate)}
-                    </p>
+                    <p className="font-medium">{event.startDate && formatDate(event.startDate)}</p>
                     {event.startTime && event.endTime && (
                       <p className="text-muted-foreground">
                         {event.startTime} às {event.endTime}

@@ -5,18 +5,20 @@ const PAGBANK_API_URL = process.env.PAGBANK_API_URL?.startsWith('http')
   : `https://${process.env.PAGBANK_API_URL || 'sandbox.api.pagseguro.com'}`
 const PAGBANK_TOKEN = process.env.PAGBANK_TOKEN || ''
 
-type PaymentMethod = 'credit_card' | 'debit_card' | 'boleto' | 'pix' | 'qr_code'
-
 /**
- * Hook: Criar Pedido no PagBank
+ * Hook: Criar Checkout no PagBank
  *
- * Quando um novo pagamento é criado, este hook envia o pedido para a API do PagBank
- * e atualiza o registro com os dados retornados (pagbankOrderId, QR Code, boleto, etc.)
+ * Quando um novo pagamento é criado, este hook cria um checkout no PagBank
+ * e retorna uma URL para redirecionar o usuário à página de pagamento.
+ *
+ * Vantagens do Checkout:
+ * - Todos os métodos de pagamento em uma página (PIX, Boleto, Cartão)
+ * - Ambiente seguro do PagBank
+ * - Menos código e manutenção
  */
 export const createPagBankOrderHook: CollectionBeforeChangeHook = async ({
   data,
   operation,
-  req,
 }) => {
   // Só executa na criação de novos pagamentos
   if (operation !== 'create') {
@@ -39,11 +41,36 @@ export const createPagBankOrderHook: CollectionBeforeChangeHook = async ({
   }
 
   try {
+    // URL de redirecionamento após pagamento
+    const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const redirectUrl = `${baseUrl}/pagamento/confirmacao?ref=${data.referenceId}`
+
+    // URL de notificação webhook
+    const notificationUrl = process.env.PAGBANK_NOTIFICATION_URL || `${baseUrl}/api/payments/webhook`
+
+    // Monta os itens para o checkout
+    const items = (data.items || []).map((item: { name: string; quantity: number; unitAmount: number; referenceId?: string }) => ({
+      reference_id: (item.referenceId || item.name).substring(0, 64),
+      name: item.name.substring(0, 64),
+      quantity: item.quantity,
+      unit_amount: item.unitAmount,
+    }))
+
+    // Se não tiver itens, cria um item genérico
+    if (items.length === 0) {
+      items.push({
+        reference_id: data.referenceId.substring(0, 64),
+        name: `Pagamento ${data.referenceId}`.substring(0, 64),
+        quantity: 1,
+        unit_amount: data.totalAmount || 0,
+      })
+    }
+
     // Monta o customer para o PagBank
     const customer: Record<string, unknown> = {
-      name: data.customerName,
+      name: data.customerName.substring(0, 50),
       email: data.customerEmail,
-      tax_id: data.customerTaxId.replace(/\D/g, ''), // Remove caracteres não numéricos
+      tax_id: data.customerTaxId.replace(/\D/g, ''),
     }
 
     if (data.customerPhone) {
@@ -60,131 +87,89 @@ export const createPagBankOrderHook: CollectionBeforeChangeHook = async ({
       }
     }
 
-    // Monta o body para a API do PagBank
-    const pagbankBody: Record<string, unknown> = {
+    // Data de expiração do checkout (24 horas)
+    const expirationDate = new Date()
+    expirationDate.setHours(expirationDate.getHours() + 24)
+
+    // Monta o body para a API de Checkout do PagBank
+    const checkoutBody: Record<string, unknown> = {
       reference_id: data.referenceId,
       customer,
-    }
-
-    // Adiciona itens se existirem
-    if (data.items && data.items.length > 0) {
-      pagbankBody.items = data.items.map((item: { name: string; quantity: number; unitAmount: number; referenceId?: string }) => ({
-        reference_id: item.referenceId || item.name.substring(0, 64),
-        name: item.name,
-        quantity: item.quantity,
-        unit_amount: item.unitAmount,
-      }))
-    }
-
-    // Se o método de pagamento é PIX, adiciona qr_codes
-    if (data.paymentMethod === 'pix' || data.paymentMethod === 'qr_code') {
-      const expirationDate = new Date()
-      expirationDate.setHours(expirationDate.getHours() + 24) // Expira em 24 horas
-
-      pagbankBody.qr_codes = [
+      customer_modifiable: false, // Dados já preenchidos, não permite alteração
+      items,
+      redirect_url: redirectUrl,
+      return_url: redirectUrl,
+      notification_urls: [notificationUrl],
+      expiration_date: expirationDate.toISOString(),
+      // Configurações de pagamento
+      payment_methods: [
+        { type: 'CREDIT_CARD' },
+        { type: 'DEBIT_CARD' },
+        { type: 'PIX' },
+        { type: 'BOLETO' },
+      ],
+      // Configuração de parcelas (até 12x, vendedor assume juros até 3x)
+      payment_methods_configs: [
         {
-          amount: {
-            value: data.totalAmount || 0,
-          },
-          expiration_date: expirationDate.toISOString(),
+          type: 'CREDIT_CARD',
+          config_options: [
+            { option: 'INSTALLMENTS_LIMIT', value: '12' },
+            { option: 'INTEREST_FREE_INSTALLMENTS', value: '3' },
+          ],
         },
-      ]
+      ],
+      // Configuração de envio (sem envio físico para eventos)
+      shipping: {
+        type: 'FIXED',
+        service_type: 'NONE',
+        amount: 0,
+      },
     }
 
-    // Se o método de pagamento é boleto, adiciona charges
-    if (data.paymentMethod === 'boleto') {
-      const dueDate = new Date()
-      dueDate.setDate(dueDate.getDate() + 3) // Vencimento em 3 dias
-
-      pagbankBody.charges = [
-        {
-          reference_id: data.referenceId,
-          description: `Pagamento ${data.referenceId}`,
-          amount: {
-            value: data.totalAmount || 0,
-            currency: 'BRL',
-          },
-          payment_method: {
-            type: 'BOLETO',
-            boleto: {
-              due_date: dueDate.toISOString().split('T')[0],
-              holder: {
-                name: data.customerName,
-                tax_id: data.customerTaxId.replace(/\D/g, ''),
-                email: data.customerEmail,
-              },
-            },
-          },
-        },
-      ]
+    // Se tiver um desconto configurado
+    if (data.discountAmount && data.discountAmount > 0) {
+      checkoutBody.discount_amount = data.discountAmount
     }
 
-    // Adiciona URL de notificação se configurada
-    const notificationUrl = process.env.PAGBANK_NOTIFICATION_URL
-    if (notificationUrl) {
-      pagbankBody.notification_urls = [notificationUrl]
-    }
+    console.log('Criando checkout no PagBank:', JSON.stringify(checkoutBody, null, 2))
 
-    console.log('Criando pedido no PagBank:', JSON.stringify(pagbankBody, null, 2))
-
-    // Faz a requisição para a API do PagBank
-    const pagbankResponse = await fetch(`${PAGBANK_API_URL}/orders`, {
+    // Faz a requisição para a API de Checkout do PagBank
+    const pagbankResponse = await fetch(`${PAGBANK_API_URL}/checkouts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${PAGBANK_TOKEN}`,
+        Authorization: `Bearer ${PAGBANK_TOKEN}`,
       },
-      body: JSON.stringify(pagbankBody),
+      body: JSON.stringify(checkoutBody),
     })
 
     const pagbankData = await pagbankResponse.json()
 
     if (!pagbankResponse.ok) {
-      console.error('Erro ao criar pedido no PagBank:', pagbankData)
+      console.error('Erro ao criar checkout no PagBank:', pagbankData)
       // Não bloqueia a criação do pagamento, apenas loga o erro
       data.notes = `${data.notes || ''}\n\n[ERRO PagBank] ${JSON.stringify(pagbankData)}`.trim()
       return data
     }
 
-    console.log('Pedido criado no PagBank:', pagbankData.id)
+    console.log('Checkout criado no PagBank:', pagbankData.id)
 
     // Atualiza os dados com a resposta do PagBank
     data.pagbankOrderId = pagbankData.id
     data.pagbankResponse = pagbankData
     data.status = 'waiting_payment'
 
-    // Extrai dados do QR Code PIX se disponível
-    if (pagbankData.qr_codes && pagbankData.qr_codes.length > 0) {
-      const qrCode = pagbankData.qr_codes[0]
-      if (qrCode.links) {
-        const pngLink = qrCode.links.find((link: { media: string; href: string }) => link.media === 'image/png')
-        if (pngLink) {
-          data.qrCodeUrl = pngLink.href
-        }
-      }
-      data.qrCodeText = qrCode.text
-      data.qrCodeExpirationDate = qrCode.expiration_date
-    }
-
-    // Extrai dados do boleto se disponível
-    if (pagbankData.charges && pagbankData.charges.length > 0) {
-      const charge = pagbankData.charges[0]
-      data.chargeId = charge.id
-      if (charge.payment_method?.boleto) {
-        data.boletoBarcode = charge.payment_method.boleto.barcode
-        data.boletoDueDate = charge.payment_method.boleto.due_date
-        if (charge.links) {
-          const pdfLink = charge.links.find((link: { media: string; href: string }) => link.media === 'application/pdf')
-          if (pdfLink) {
-            data.boletoUrl = pdfLink.href
-          }
-        }
+    // Extrai a URL de pagamento do checkout
+    if (pagbankData.links && pagbankData.links.length > 0) {
+      const payLink = pagbankData.links.find((link: { rel: string; href: string }) => link.rel === 'PAY')
+      if (payLink) {
+        data.checkoutUrl = payLink.href
       }
     }
 
     return data
   } catch (error) {
-    console.error('Erro ao criar pedido no PagBank:', error)
+    console.error('Erro ao criar checkout no PagBank:', error)
     data.notes = `${data.notes || ''}\n\n[ERRO] ${error instanceof Error ? error.message : 'Erro desconhecido'}`.trim()
     return data
   }
